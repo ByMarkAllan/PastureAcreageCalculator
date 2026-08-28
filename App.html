@@ -1,0 +1,2084 @@
+<header class="ra-header">
+  <div class="brand-row">
+    <div class="brand">RANCHASSIST™</div>
+    <div class="brand-divider"></div>
+    <div class="tool-header-name">Pasture Acreage Calculator</div>
+  </div>
+
+  <div class="header-actions">
+    <div class="menu-wrap desktop-only">
+      <button class="btn" id="projectMenuBtn" aria-haspopup="true" aria-expanded="false">Project ▾</button>
+      <div class="menu hidden" id="projectMenu" role="menu">
+        <button id="openProjectBtn">Open Project <span>⌘O</span></button>
+        <button id="saveProjectBtn">Save Project <span>⌘S</span></button>
+        <button id="duplicateProjectBtn">Duplicate Project</button>
+        <div class="menu-sep"></div>
+        <button id="importGeoJsonBtn">Import GeoJSON</button>
+        <button id="clearSessionBtn" style="color:#B44845">Clear Session</button>
+      </div>
+    </div>
+
+    <div class="menu-wrap desktop-only">
+      <button class="btn" id="exportMenuBtn" aria-haspopup="true" aria-expanded="false">Export ▾</button>
+      <div class="menu hidden" id="exportMenu" role="menu">
+        <button data-export="pdf">PDF / Print</button>
+        <button data-export="csv">CSV</button>
+        <button data-export="png">PNG / Map</button>
+        <button data-export="geojson">GeoJSON</button>
+      </div>
+    </div>
+
+    <div class="menu-wrap desktop-only">
+      <button class="btn" id="shareMenuBtn" aria-haspopup="true" aria-expanded="false">Share ▾</button>
+      <div class="menu hidden" id="shareMenu" role="menu">
+        <button id="emailBtn">Email</button>
+        <button id="copySummaryBtn">Copy Summary</button>
+      </div>
+    </div>
+
+    <div class="menu-wrap">
+      <button class="icon-btn" id="mobileMenuBtn" aria-label="More actions" aria-haspopup="true" aria-expanded="false">•••</button>
+      <div class="menu hidden" id="mobileMenu" role="menu">
+        <button data-mobile-action="open">Open Project</button>
+        <button data-mobile-action="save">Save Project</button>
+        <button data-mobile-action="duplicate">Duplicate Project</button>
+        <div class="menu-sep"></div>
+        <button data-mobile-action="export">Export CSV</button>
+        <button data-mobile-action="geojson">Export GeoJSON</button>
+        <button data-mobile-action="png">Export Map PNG</button>
+        <button data-mobile-action="print">PDF / Print</button>
+        <div class="menu-sep"></div>
+        <button data-mobile-action="copy">Copy Summary</button>
+        <button data-mobile-action="email">Email</button>
+        <button data-mobile-action="clear" style="color:#B44845">Clear Session</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="app-shell">
+  <section class="map-pane" aria-label="Interactive pasture map">
+    <div id="map"></div>
+
+    <div class="map-ui">
+      <form class="search-box" id="searchForm">
+        <label class="sr-only" for="searchInput">Search address or place</label>
+        <input id="searchInput" autocomplete="off" placeholder="Search address, ranch, town, or place">
+        <button class="btn btn-small" type="submit">Search</button>
+      </form>
+      <div id="searchResults" class="search-results hidden" aria-live="polite"></div>
+    </div>
+
+    <div id="liveDraft" class="live-draft hidden">Drawing…</div>
+
+    <div class="session-chip">
+      <strong id="saveStateChip">Unsaved</strong><br>
+      Session recovery is on
+    </div>
+
+    <div class="map-legend" aria-label="Map legend">
+      <div class="legend-row"><span class="swatch swatch-pasture"></span> Pasture</div>
+      <div class="legend-row"><span class="swatch swatch-exclusion"></span> Exclusion</div>
+      <div class="legend-row"><span class="dot"></span> Gate / water / note</div>
+    </div>
+
+    <div class="mobile-summary" aria-hidden="true">
+      <div class="pill"><span id="mobileGross">0.00 ac</span> gross</div>
+      <div class="pill"><span id="mobileUsable">0.00 ac</span> usable</div>
+    </div>
+
+    <div class="draw-toolbar" aria-label="Map drawing tools">
+      <button class="btn" id="drawPastureBtn">＋ Pasture</button>
+      <button class="btn" id="drawExclusionBtn">− Exclusion</button>
+      <button class="btn" id="addGateBtn">Gate</button>
+      <button class="btn" id="addWaterBtn">Water</button>
+      <button class="btn" id="addNoteBtn">Note</button>
+      <button class="btn" id="selectBtn">Select</button>
+      <button class="btn" id="undoBtn" title="Undo" disabled>↶</button>
+      <button class="btn" id="redoBtn" title="Redo" disabled>↷</button>
+      <button class="btn btn-danger" id="deleteSelectedBtn" disabled>Delete</button>
+    </div>
+  </section>
+
+  <aside class="panel" id="toolPanel">
+    <button class="mobile-sheet-handle" id="sheetHandle" aria-label="Expand or collapse details"></button>
+    <div class="panel-scroll">
+      <section class="tool-intro">
+        <div class="tool-kicker">LAND · MAPPING · ACREAGE</div>
+        <h1>Pasture Acreage Calculator</h1>
+        <p class="tool-dek">Draw pasture boundaries and calculate gross acreage, exclusions, perimeter, and estimated usable area.</p>
+        <div class="project-name-row">
+          <label class="sr-only" for="projectName">Project name</label>
+          <input id="projectName" value="Pasture Acreage Project" placeholder="Project name">
+          <span class="detail-status" id="saveStatus">Unsaved</span>
+        </div>
+      </section>
+
+      <div class="notice">
+        <strong>Session only</strong>
+        RanchAssist does not permanently store this project. Save a RanchAssist <b>.ra</b> project file to continue your work later, or export your results before leaving.
+      </div>
+
+      <section class="metrics" aria-label="Project acreage totals">
+        <div class="metric">
+          <div class="metric-label">Gross area</div>
+          <div class="metric-value" id="grossTotal">0.00</div>
+          <div class="metric-sub" id="grossUnit">acres</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Exclusions</div>
+          <div class="metric-value" id="excludedTotal">0.00</div>
+          <div class="metric-sub" id="excludedUnit">acres</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Net measured</div>
+          <div class="metric-value" id="netTotal">0.00</div>
+          <div class="metric-sub" id="netUnit">acres</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Est. usable</div>
+          <div class="metric-value" id="usableTotal">0.00</div>
+          <div class="metric-sub" id="usableUnit">acres</div>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Tool panels">
+        <button class="tab active" data-tab="pastures">Pastures</button>
+        <button class="tab" data-tab="feature">Feature</button>
+        <button class="tab" data-tab="settings">Settings</button>
+        <button class="tab" data-tab="calculations">Calculations</button>
+      </nav>
+
+      <section class="tab-panel" id="tab-pastures">
+        <div class="section-head">
+          <div>
+            <h2>Pastures</h2>
+            <p>Measured boundaries and usable-area adjustments.</p>
+          </div>
+          <button class="btn btn-small" id="addPasturePanelBtn">Draw pasture</button>
+        </div>
+        <div id="pastureList"></div>
+      </section>
+
+      <section class="tab-panel hidden" id="tab-feature">
+        <div id="featureEditor">
+          <div class="empty">
+            <strong>No feature selected</strong>
+            Select a pasture, exclusion, gate, water point, or note on the map.
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel hidden" id="tab-settings">
+        <div class="card">
+          <div class="card-title">Display units</div>
+          <div class="unit-controls">
+            <div class="field">
+              <label for="areaUnit">Area</label>
+              <select id="areaUnit">
+                <option value="acres">Acres</option>
+                <option value="hectares">Hectares</option>
+                <option value="sqft">Square feet</option>
+                <option value="sqm">Square meters</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="perimeterUnit">Perimeter</label>
+              <select id="perimeterUnit">
+                <option value="ft">Feet</option>
+                <option value="mi">Miles</option>
+                <option value="m">Meters</option>
+                <option value="km">Kilometers</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Map</div>
+          <div class="field">
+            <label for="mapStyleSelect">Base map</label>
+            <select id="mapStyleSelect">
+              <option value="mapbox://styles/mapbox/standard-satellite">Satellite</option>
+              <option value="mapbox://styles/mapbox/satellite-streets-v12">Satellite + streets</option>
+              <option value="mapbox://styles/mapbox/outdoors-v12">Outdoors</option>
+            </select>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-small" id="zoomAllBtn">Zoom to all</button>
+            <button class="btn btn-small" id="geolocateBtn">My location</button>
+          </div>
+        </div>
+
+        <div class="notice warning">
+          <strong>Operational measurement only</strong>
+          Mapped boundaries are planning measurements and are not a legal survey or substitute for a licensed surveyor.
+        </div>
+      </section>
+
+      <section class="tab-panel hidden" id="tab-calculations">
+        <div class="card">
+          <div class="card-title">Calculation details</div>
+          <div class="calc-list">
+            <div class="calc-row">
+              <div class="calc-title">Gross area</div>
+              <div class="calc-formula">Geodesic polygon area from the mapped pasture boundary.</div>
+            </div>
+            <div class="calc-row">
+              <div class="calc-title">Excluded area</div>
+              <div class="calc-formula">Area where each assigned exclusion overlaps its parent pasture. Portions outside the pasture are not subtracted.</div>
+            </div>
+            <div class="calc-row">
+              <div class="calc-title">Net measured area</div>
+              <div class="calc-formula">Gross area − overlapping exclusions.</div>
+            </div>
+            <div class="calc-row">
+              <div class="calc-title">Estimated usable area</div>
+              <div class="calc-formula">Net measured × (1 − brush/timber %) × (1 − slope reduction %) × (1 − inaccessible %). User-entered reductions are applied sequentially.</div>
+            </div>
+            <div class="calc-row">
+              <div class="calc-title">Perimeter</div>
+              <div class="calc-formula">Geodesic length around each mapped pasture boundary. Project perimeter is the sum of pasture perimeters.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </aside>
+</main>
+
+<input type="file" id="raFileInput" accept=".ra,application/x-ranchassist-project,application/json" hidden>
+<input type="file" id="geoJsonFileInput" accept=".geojson,.json,application/geo+json,application/json" hidden>
+
+<div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+<div class="modal-backdrop hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="confirmTitle">Clear this session?</h2>
+      <button class="icon-btn" data-close-modal="confirmModal" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      This removes the current unsaved RanchAssist project from this browser session. Saved <b>.ra</b> files on your device will not be affected.
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal="confirmModal">Cancel</button>
+      <button class="btn btn-danger" id="confirmClearBtn">Clear Session</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="emailModal" role="dialog" aria-modal="true" aria-labelledby="emailTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="emailTitle">Share by email</h2>
+      <button class="icon-btn" data-close-modal="emailModal" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="emailTo">Email address</label>
+        <input id="emailTo" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com">
+      </div>
+      <div class="helper">The email includes project totals, pasture summaries, assumptions, and the survey disclaimer. RanchAssist does not save the project after sending.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close-modal="emailModal">Cancel</button>
+      <button class="btn btn-primary" id="sendEmailBtn">Send Email</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="tokenModal" role="dialog" aria-modal="true" aria-labelledby="tokenTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="tokenTitle">Mapbox token required</h2>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="tokenInput">Public Mapbox access token</label>
+        <input id="tokenInput" type="password" autocomplete="off" placeholder="pk.ey...">
+        <div class="helper">For Apps Script deployment, set <b>MAPBOX_PUBLIC_TOKEN</b> in Script Properties. This field is only a temporary session fallback.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="useTokenBtn">Load Map</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const CONFIG = window.RA_CONFIG || {};
+  const TOOL = CONFIG.tool || {
+    id: 'pasture-acreage-calculator',
+    name: 'Pasture Acreage Calculator',
+    version: '1.0.0',
+    raFormatVersion: '1.0'
+  };
+
+  const SESSION_KEY = 'ranchassist.pasture-acreage-calculator.session.v1';
+  const ACRES_PER_SQM = 0.00024710538146717;
+  const SQFT_PER_SQM = 10.76391041671;
+  const FEET_PER_METER = 3.280839895;
+  const MILES_PER_METER = 0.00062137119223733;
+
+  const state = {
+    project: null,
+    map: null,
+    draw: null,
+    selectedId: null,
+    pendingKind: null,
+    pendingMarkerType: null,
+    areaUnit: 'acres',
+    perimeterUnit: 'ft',
+    mapStyle: 'mapbox://styles/mapbox/standard-satellite',
+    history: [],
+    historyIndex: -1,
+    restoringHistory: false,
+    dirty: false,
+    lastSavedHash: null,
+    loaded: false,
+    searchAbort: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const els = {};
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  function init() {
+    cacheElements();
+    bindUI();
+    initializeProject();
+    restoreSessionEnvelope();
+
+    const token = String(CONFIG.mapboxToken || sessionStorage.getItem('ra_mapbox_session_token') || '').trim();
+    if (!token) {
+      openModal('tokenModal');
+      return;
+    }
+    startMap(token);
+  }
+
+  function cacheElements() {
+    [
+      'projectMenuBtn','projectMenu','exportMenuBtn','exportMenu','shareMenuBtn','shareMenu','mobileMenuBtn','mobileMenu',
+      'openProjectBtn','saveProjectBtn','duplicateProjectBtn','importGeoJsonBtn','clearSessionBtn',
+      'emailBtn','copySummaryBtn','searchForm','searchInput','searchResults','liveDraft',
+      'drawPastureBtn','drawExclusionBtn','addGateBtn','addWaterBtn','addNoteBtn','selectBtn',
+      'undoBtn','redoBtn','deleteSelectedBtn','toolPanel','sheetHandle','projectName','saveStatus','saveStateChip',
+      'grossTotal','excludedTotal','netTotal','usableTotal','grossUnit','excludedUnit','netUnit','usableUnit',
+      'mobileGross','mobileUsable','pastureList','featureEditor','addPasturePanelBtn','areaUnit','perimeterUnit',
+      'mapStyleSelect','zoomAllBtn','geolocateBtn','raFileInput','geoJsonFileInput','toastRegion',
+      'confirmModal','confirmClearBtn','emailModal','emailTo','sendEmailBtn','tokenModal','tokenInput','useTokenBtn'
+    ].forEach(id => els[id] = $(id));
+  }
+
+  function bindUI() {
+    bindMenu(els.projectMenuBtn, els.projectMenu);
+    bindMenu(els.exportMenuBtn, els.exportMenu);
+    bindMenu(els.shareMenuBtn, els.shareMenu);
+    bindMenu(els.mobileMenuBtn, els.mobileMenu);
+
+    els.openProjectBtn.addEventListener('click', () => els.raFileInput.click());
+    els.saveProjectBtn.addEventListener('click', saveRAProject);
+    els.duplicateProjectBtn.addEventListener('click', duplicateProject);
+    els.importGeoJsonBtn.addEventListener('click', () => els.geoJsonFileInput.click());
+    els.clearSessionBtn.addEventListener('click', () => openModal('confirmModal'));
+
+    els.copySummaryBtn.addEventListener('click', copySummary);
+    els.emailBtn.addEventListener('click', () => openModal('emailModal'));
+
+    document.querySelectorAll('[data-export]').forEach(btn => btn.addEventListener('click', () => {
+      const type = btn.dataset.export;
+      if (type === 'pdf') printReport();
+      if (type === 'csv') exportCSV();
+      if (type === 'png') exportMapPNG();
+      if (type === 'geojson') exportGeoJSON();
+      closeAllMenus();
+    }));
+
+    els.mobileMenu.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-mobile-action]');
+      if (!btn) return;
+      const action = btn.dataset.mobileAction;
+      closeAllMenus();
+      if (action === 'open') els.raFileInput.click();
+      if (action === 'save') saveRAProject();
+      if (action === 'duplicate') duplicateProject();
+      if (action === 'export') exportCSV();
+      if (action === 'geojson') exportGeoJSON();
+      if (action === 'png') exportMapPNG();
+      if (action === 'print') printReport();
+      if (action === 'copy') copySummary();
+      if (action === 'email') openModal('emailModal');
+      if (action === 'clear') openModal('confirmModal');
+    });
+
+    els.drawPastureBtn.addEventListener('click', () => beginDraw('pasture'));
+    els.addPasturePanelBtn.addEventListener('click', () => beginDraw('pasture'));
+    els.drawExclusionBtn.addEventListener('click', () => beginDraw('exclusion'));
+    els.addGateBtn.addEventListener('click', () => beginMarker('gate'));
+    els.addWaterBtn.addEventListener('click', () => beginMarker('water'));
+    els.addNoteBtn.addEventListener('click', () => beginMarker('note'));
+    els.selectBtn.addEventListener('click', selectMode);
+    els.deleteSelectedBtn.addEventListener('click', deleteSelected);
+    els.undoBtn.addEventListener('click', undo);
+    els.redoBtn.addEventListener('click', redo);
+
+    els.searchForm.addEventListener('submit', searchPlaces);
+    els.searchInput.addEventListener('input', () => {
+      if (!els.searchInput.value.trim()) hide(els.searchResults);
+    });
+
+    els.projectName.addEventListener('input', () => {
+      state.project.name = els.projectName.value.trim() || 'Pasture Acreage Project';
+      markDirty();
+      saveSession();
+    });
+
+    els.areaUnit.addEventListener('change', () => {
+      state.areaUnit = els.areaUnit.value;
+      renderAll();
+      markDirty();
+      saveSession();
+    });
+    els.perimeterUnit.addEventListener('change', () => {
+      state.perimeterUnit = els.perimeterUnit.value;
+      renderAll();
+      markDirty();
+      saveSession();
+    });
+    els.mapStyleSelect.addEventListener('change', () => {
+      state.mapStyle = els.mapStyleSelect.value;
+      if (state.map) state.map.setStyle(state.mapStyle);
+      markDirty();
+      saveSession();
+    });
+
+    els.zoomAllBtn.addEventListener('click', zoomToAll);
+    els.geolocateBtn.addEventListener('click', geolocate);
+
+    els.raFileInput.addEventListener('change', openRAProjectFromInput);
+    els.geoJsonFileInput.addEventListener('change', importGeoJSONFromInput);
+
+    els.confirmClearBtn.addEventListener('click', clearSession);
+    els.sendEmailBtn.addEventListener('click', sendEmail);
+
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+    });
+
+    els.useTokenBtn.addEventListener('click', () => {
+      const token = els.tokenInput.value.trim();
+      if (!token.startsWith('pk.')) {
+        toast('Enter a valid public Mapbox token beginning with “pk.”.', 'error');
+        return;
+      }
+      sessionStorage.setItem('ra_mapbox_session_token', token);
+      closeModal('tokenModal');
+      startMap(token);
+    });
+
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => setTab(btn.dataset.tab));
+    });
+
+    els.sheetHandle.addEventListener('click', () => {
+      els.toolPanel.classList.toggle('expanded');
+      setTimeout(() => state.map && state.map.resize(), 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.menu-wrap')) closeAllMenus();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveRAProject();
+      }
+      if (mod && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        els.raFileInput.click();
+      }
+      if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((mod && e.key.toLowerCase() === 'y') || (mod && e.shiftKey && e.key.toLowerCase() === 'z')) {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (!state.dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  }
+
+  function initializeProject() {
+    const now = new Date().toISOString();
+    state.project = {
+      id: uuid(),
+      name: 'Pasture Acreage Project',
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  function restoreSessionEnvelope() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const envelope = JSON.parse(raw);
+      if (!envelope || envelope.toolId !== TOOL.id) return;
+      if (envelope.project) state.project = envelope.project;
+      if (envelope.areaUnit) state.areaUnit = envelope.areaUnit;
+      if (envelope.perimeterUnit) state.perimeterUnit = envelope.perimeterUnit;
+      if (envelope.mapStyle) state.mapStyle = envelope.mapStyle;
+      state.pendingRestore = envelope;
+      state.dirty = !!envelope.dirty;
+    } catch (err) {
+      console.warn('Session recovery skipped:', err);
+    }
+  }
+
+  function startMap(token) {
+    if (state.loaded) return;
+    state.loaded = true;
+    mapboxgl.accessToken = token;
+
+    state.map = new mapboxgl.Map({
+      container: 'map',
+      accessToken: token,
+      style: state.mapStyle,
+      center: [-97.5, 31.5],
+      zoom: 5.2,
+      preserveDrawingBuffer: true,
+      attributionControl: true
+    });
+
+    state.map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+    state.map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    state.map.addControl(new mapboxgl.ScaleControl({ maxWidth: 110, unit: 'imperial' }), 'bottom-right');
+
+    const drawStyles = [
+      {
+        id:'gl-draw-polygon-fill-inactive',
+        type:'fill',
+        filter:['all',['==','active','false'],['==','$type','Polygon']],
+        paint:{
+          'fill-color':['case',['==',['get','user_raKind'],'exclusion'],'#A16C32','#4C6752'],
+          'fill-opacity':['case',['==',['get','user_visible'],false],0,['==',['get','user_raKind'],'exclusion'],.25,.20]
+        }
+      },
+      {
+        id:'gl-draw-polygon-fill-active',
+        type:'fill',
+        filter:['all',['==','active','true'],['==','$type','Polygon']],
+        paint:{
+          'fill-color':['case',['==',['get','user_raKind'],'exclusion'],'#A16C32','#4C6752'],
+          'fill-opacity':.18
+        }
+      },
+      {
+        id:'gl-draw-polygon-stroke-inactive',
+        type:'line',
+        filter:['all',['==','active','false'],['==','$type','Polygon']],
+        layout:{'line-cap':'round','line-join':'round'},
+        paint:{
+          'line-color':['case',['==',['get','user_raKind'],'exclusion'],'#8D5D2C','#111111'],
+          'line-width':2,
+          'line-opacity':['case',['==',['get','user_visible'],false],0,1]
+        }
+      },
+      {
+        id:'gl-draw-polygon-stroke-active',
+        type:'line',
+        filter:['all',['==','active','true'],['==','$type','Polygon']],
+        layout:{'line-cap':'round','line-join':'round'},
+        paint:{
+          'line-color':'#0A0A09','line-dasharray':[1.1,1.1],'line-width':2.5
+        }
+      },
+      {
+        id:'gl-draw-line-inactive',
+        type:'line',
+        filter:['all',['==','active','false'],['==','$type','LineString']],
+        layout:{'line-cap':'round','line-join':'round'},
+        paint:{'line-color':'#111111','line-width':2}
+      },
+      {
+        id:'gl-draw-line-active',
+        type:'line',
+        filter:['all',['==','active','true'],['==','$type','LineString']],
+        layout:{'line-cap':'round','line-join':'round'},
+        paint:{'line-color':'#0A0A09','line-dasharray':[1,1],'line-width':2}
+      },
+      {
+        id:'gl-draw-point-inactive',
+        type:'circle',
+        filter:['all',['==','active','false'],['==','$type','Point']],
+        paint:{
+          'circle-radius':['case',['==',['get','user_visible'],false],0,6],
+          'circle-color':['case',
+            ['==',['get','user_markerType'],'water'],'#536C80',
+            ['==',['get','user_markerType'],'note'],'#666660',
+            '#0A0A09'
+          ],
+          'circle-stroke-color':'#FFFFFF','circle-stroke-width':2
+        }
+      },
+      {
+        id:'gl-draw-point-active',
+        type:'circle',
+        filter:['all',['==','active','true'],['==','$type','Point']],
+        paint:{'circle-radius':7,'circle-color':'#4C6752','circle-stroke-color':'#FFFFFF','circle-stroke-width':2}
+      },
+      {
+        id:'gl-draw-polygon-and-line-vertex-stroke-inactive',
+        type:'circle',
+        filter:['all',['==','meta','vertex'],['==','$type','Point']],
+        paint:{'circle-radius':5,'circle-color':'#FFFFFF'}
+      },
+      {
+        id:'gl-draw-polygon-and-line-vertex-inactive',
+        type:'circle',
+        filter:['all',['==','meta','vertex'],['==','$type','Point']],
+        paint:{'circle-radius':3,'circle-color':'#0A0A09'}
+      },
+      {
+        id:'gl-draw-polygon-midpoint',
+        type:'circle',
+        filter:['all',['==','meta','midpoint'],['==','$type','Point']],
+        paint:{'circle-radius':3,'circle-color':'#4C6752'}
+      }
+    ];
+
+    state.draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {},
+      userProperties: true,
+      styles: drawStyles
+    });
+    state.map.addControl(state.draw);
+
+    state.map.on('load', () => {
+      addOverlayLayers();
+      restorePendingSession();
+      pushHistory('Initial');
+      renderAll();
+      saveSession();
+    });
+
+    state.map.on('style.load', () => {
+      if (!state.map.getSource('ra-labels')) addOverlayLayers();
+      refreshLabels();
+    });
+
+    state.map.on('draw.create', onDrawCreate);
+    state.map.on('draw.update', onDrawChanged);
+    state.map.on('draw.delete', onDrawChanged);
+    state.map.on('draw.selectionchange', onSelectionChange);
+    state.map.on('mousemove', updateLiveDraft);
+    state.map.on('click', updateLiveDraft);
+  }
+
+  function addOverlayLayers() {
+    if (!state.map || !state.map.isStyleLoaded()) return;
+    if (!state.map.getSource('ra-labels')) {
+      state.map.addSource('ra-labels', {
+        type:'geojson',
+        data:{ type:'FeatureCollection', features:[] }
+      });
+      state.map.addLayer({
+        id:'ra-pasture-labels',
+        type:'symbol',
+        source:'ra-labels',
+        layout:{
+          'text-field':['get','label'],
+          'text-size':12,
+          'text-font':['DIN Pro Medium','Arial Unicode MS Regular'],
+          'text-offset':[0,0],
+          'text-allow-overlap':false
+        },
+        paint:{
+          'text-color':'#FFFFFF',
+          'text-halo-color':'rgba(10,10,9,.86)',
+          'text-halo-width':3
+        }
+      });
+    }
+  }
+
+  function restorePendingSession() {
+    const env = state.pendingRestore;
+    if (!env || !state.draw) return;
+
+    try {
+      if (env.geojson && env.geojson.type === 'FeatureCollection') {
+        state.restoringHistory = true;
+        state.draw.set(env.geojson);
+        state.restoringHistory = false;
+      }
+      if (env.camera && Array.isArray(env.camera.center)) {
+        state.map.jumpTo({
+          center: env.camera.center,
+          zoom: Number(env.camera.zoom) || 5.2,
+          bearing: Number(env.camera.bearing) || 0,
+          pitch: Number(env.camera.pitch) || 0
+        });
+      }
+      delete state.pendingRestore;
+      toast('Active session restored.');
+    } catch (err) {
+      console.warn(err);
+      toast('Session recovery could not restore every map feature.', 'error');
+    }
+  }
+
+  function onDrawCreate(e) {
+    const feature = e.features && e.features[0];
+    if (!feature) return;
+
+    const id = feature.id;
+
+    if (feature.geometry.type === 'Polygon') {
+      const kind = state.pendingKind || 'pasture';
+      state.draw.setFeatureProperty(id, 'raKind', kind);
+      state.draw.setFeatureProperty(id, 'visible', true);
+
+      if (kind === 'pasture') {
+        const count = getPastures().length;
+        state.draw.setFeatureProperty(id, 'name', `Pasture ${count}`);
+        state.draw.setFeatureProperty(id, 'brushPct', 0);
+        state.draw.setFeatureProperty(id, 'slopePct', 0);
+        state.draw.setFeatureProperty(id, 'inaccessiblePct', 0);
+        state.draw.setFeatureProperty(id, 'notes', '');
+      } else {
+        state.draw.setFeatureProperty(id, 'exclusionType', 'pond');
+        state.draw.setFeatureProperty(id, 'name', 'Pond / Exclusion');
+        state.draw.setFeatureProperty(id, 'notes', '');
+
+        const parent = findBestParentPasture(state.draw.get(id));
+        state.draw.setFeatureProperty(id, 'parentPastureId', parent ? String(parent.id) : '');
+      }
+    }
+
+    if (feature.geometry.type === 'Point') {
+      const markerType = state.pendingMarkerType || 'note';
+      state.draw.setFeatureProperty(id, 'raKind', 'marker');
+      state.draw.setFeatureProperty(id, 'markerType', markerType);
+      state.draw.setFeatureProperty(id, 'name', markerType === 'gate' ? 'Gate' : markerType === 'water' ? 'Water Source' : 'Map Note');
+      state.draw.setFeatureProperty(id, 'notes', '');
+      state.draw.setFeatureProperty(id, 'visible', true);
+    }
+
+    state.pendingKind = null;
+    state.pendingMarkerType = null;
+    selectMode();
+
+    try {
+      state.draw.changeMode('simple_select', { featureIds:[id] });
+    } catch (_) {}
+    state.selectedId = id;
+
+    onDataMutation('Feature added');
+    setTab('feature');
+  }
+
+  function onDrawChanged() {
+    if (state.restoringHistory) return;
+    onDataMutation('Map edited');
+  }
+
+  function onSelectionChange(e) {
+    const features = e.features || [];
+    state.selectedId = features.length ? features[0].id : null;
+    els.deleteSelectedBtn.disabled = !state.selectedId;
+    renderFeatureEditor();
+  }
+
+  function onDataMutation(label) {
+    renderAll();
+    markDirty();
+    pushHistory(label);
+    saveSession();
+  }
+
+  function beginDraw(kind) {
+    if (!state.draw) return;
+    state.pendingKind = kind;
+    state.pendingMarkerType = null;
+    state.draw.changeMode('draw_polygon');
+    setActiveDrawButton(kind === 'pasture' ? els.drawPastureBtn : els.drawExclusionBtn);
+    els.liveDraft.textContent = kind === 'pasture' ? 'Drawing pasture… double-click to finish' : 'Drawing exclusion… double-click to finish';
+    show(els.liveDraft);
+  }
+
+  function beginMarker(markerType) {
+    if (!state.draw) return;
+    state.pendingKind = null;
+    state.pendingMarkerType = markerType;
+    state.draw.changeMode('draw_point');
+    setActiveDrawButton(markerType === 'gate' ? els.addGateBtn : markerType === 'water' ? els.addWaterBtn : els.addNoteBtn);
+    els.liveDraft.textContent = `Place ${markerType} marker`;
+    show(els.liveDraft);
+  }
+
+  function selectMode() {
+    if (!state.draw) return;
+    try { state.draw.changeMode('simple_select'); } catch (_) {}
+    state.pendingKind = null;
+    state.pendingMarkerType = null;
+    setActiveDrawButton(els.selectBtn);
+    hide(els.liveDraft);
+  }
+
+  function setActiveDrawButton(active) {
+    [els.drawPastureBtn,els.drawExclusionBtn,els.addGateBtn,els.addWaterBtn,els.addNoteBtn,els.selectBtn]
+      .forEach(btn => btn.classList.toggle('active', btn === active));
+  }
+
+  function updateLiveDraft() {
+    if (!state.draw) return;
+    const mode = state.draw.getMode();
+    if (mode !== 'draw_polygon') {
+      if (!state.pendingMarkerType) hide(els.liveDraft);
+      return;
+    }
+
+    try {
+      const all = state.draw.getAll();
+      const polys = all.features.filter(f => f.geometry && f.geometry.type === 'Polygon');
+      const last = polys[polys.length - 1];
+      if (last && last.geometry.coordinates?.[0]?.length >= 4) {
+        const area = turf.area(last);
+        const perimeter = polygonPerimeterMeters(last);
+        els.liveDraft.textContent = `${formatArea(area)} · ${formatPerimeter(perimeter)}`;
+      } else {
+        els.liveDraft.textContent = state.pendingKind === 'exclusion'
+          ? 'Drawing exclusion… double-click to finish'
+          : 'Drawing pasture… double-click to finish';
+      }
+      show(els.liveDraft);
+    } catch (_) {}
+  }
+
+  function deleteSelected() {
+    if (!state.selectedId || !state.draw) return;
+    const feature = state.draw.get(state.selectedId);
+    if (!feature) return;
+
+    if (feature.properties?.raKind === 'pasture') {
+      const pastureId = String(feature.id);
+      const childIds = getExclusions()
+        .filter(ex => String(ex.properties?.parentPastureId || '') === pastureId)
+        .map(ex => ex.id);
+      state.draw.delete([feature.id, ...childIds]);
+    } else {
+      state.draw.delete(feature.id);
+    }
+
+    state.selectedId = null;
+    els.deleteSelectedBtn.disabled = true;
+    onDataMutation('Feature deleted');
+    setTab('pastures');
+  }
+
+  function getAllFeatures() {
+    if (!state.draw) return [];
+    return state.draw.getAll().features || [];
+  }
+
+  function getPastures() {
+    return getAllFeatures().filter(f => f.geometry?.type === 'Polygon' && f.properties?.raKind === 'pasture');
+  }
+
+  function getExclusions() {
+    return getAllFeatures().filter(f => f.geometry?.type === 'Polygon' && f.properties?.raKind === 'exclusion');
+  }
+
+  function getMarkers() {
+    return getAllFeatures().filter(f => f.geometry?.type === 'Point' && f.properties?.raKind === 'marker');
+  }
+
+  function calculatePasture(feature) {
+    const grossSqM = safeArea(feature);
+    const pastureId = String(feature.id);
+    let excludedSqM = 0;
+
+    const related = getExclusions().filter(ex => String(ex.properties?.parentPastureId || '') === pastureId);
+    const clipped = [];
+    related.forEach(ex => {
+      const shape = overlapFeature(feature, ex);
+      if (shape) clipped.push(shape);
+    });
+
+    if (clipped.length) {
+      try {
+        let merged = clipped[0];
+        for (let i = 1; i < clipped.length; i++) {
+          merged = turf.union(merged, clipped[i]) || merged;
+        }
+        excludedSqM = turf.area(merged);
+      } catch (_) {
+        // Fallback remains safe, with a gross-area cap below.
+        excludedSqM = related.reduce((sum, ex) => sum + overlapAreaSqM(feature, ex), 0);
+      }
+    }
+
+    excludedSqM = Math.min(grossSqM, excludedSqM);
+    const netSqM = Math.max(0, grossSqM - excludedSqM);
+
+    const brush = clampPct(feature.properties?.brushPct);
+    const slope = clampPct(feature.properties?.slopePct);
+    const inaccessible = clampPct(feature.properties?.inaccessiblePct);
+    const usableSqM = netSqM * (1 - brush/100) * (1 - slope/100) * (1 - inaccessible/100);
+
+    return {
+      id: feature.id,
+      name: feature.properties?.name || 'Unnamed Pasture',
+      grossSqM,
+      excludedSqM,
+      netSqM,
+      usableSqM,
+      perimeterM: polygonPerimeterMeters(feature),
+      percentUsable: grossSqM > 0 ? (usableSqM / grossSqM) * 100 : 0,
+      brush,
+      slope,
+      inaccessible,
+      exclusions: related
+    };
+  }
+
+  function projectTotals() {
+    const calcs = getPastures().map(calculatePasture);
+    return calcs.reduce((acc, p) => {
+      acc.grossSqM += p.grossSqM;
+      acc.excludedSqM += p.excludedSqM;
+      acc.netSqM += p.netSqM;
+      acc.usableSqM += p.usableSqM;
+      acc.perimeterM += p.perimeterM;
+      return acc;
+    }, {grossSqM:0,excludedSqM:0,netSqM:0,usableSqM:0,perimeterM:0});
+  }
+
+  function overlapFeature(pasture, exclusion) {
+    try {
+      return turf.intersect(pasture, exclusion);
+    } catch (_) {
+      try {
+        const centroid = turf.centroid(exclusion);
+        return turf.booleanPointInPolygon(centroid, pasture) ? deepClone(exclusion) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  function overlapAreaSqM(pasture, exclusion) {
+    const inter = overlapFeature(pasture, exclusion);
+    return inter ? safeArea(inter) : 0;
+  }
+
+  function findBestParentPasture(exclusion) {
+    const pastures = getPastures().filter(p => String(p.id) !== String(exclusion.id));
+    if (!pastures.length) return null;
+
+    let best = null;
+    let bestArea = 0;
+    pastures.forEach(p => {
+      const area = overlapAreaSqM(p, exclusion);
+      if (area > bestArea) {
+        bestArea = area;
+        best = p;
+      }
+    });
+    return bestArea > 0 ? best : pastures[0];
+  }
+
+  function polygonPerimeterMeters(feature) {
+    try {
+      const line = turf.polygonToLine(feature);
+      if (line.type === 'FeatureCollection') {
+        return line.features.reduce((sum, f) => sum + turf.length(f, {units:'kilometers'}) * 1000, 0);
+      }
+      return turf.length(line, {units:'kilometers'}) * 1000;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function safeArea(feature) {
+    try { return Math.max(0, turf.area(feature)); } catch (_) { return 0; }
+  }
+
+  function clampPct(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
+  }
+
+  function renderAll() {
+    els.projectName.value = state.project?.name || 'Pasture Acreage Project';
+    els.areaUnit.value = state.areaUnit;
+    els.perimeterUnit.value = state.perimeterUnit;
+    els.mapStyleSelect.value = state.mapStyle;
+
+    renderMetrics();
+    renderPastureList();
+    renderFeatureEditor();
+    refreshLabels();
+    updateSaveStatus();
+    updateHistoryButtons();
+  }
+
+  function renderMetrics() {
+    const totals = projectTotals();
+    els.grossTotal.textContent = formatAreaNumber(totals.grossSqM);
+    els.excludedTotal.textContent = formatAreaNumber(totals.excludedSqM);
+    els.netTotal.textContent = formatAreaNumber(totals.netSqM);
+    els.usableTotal.textContent = formatAreaNumber(totals.usableSqM);
+
+    const unitLabel = areaUnitLabel();
+    [els.grossUnit,els.excludedUnit,els.netUnit,els.usableUnit].forEach(el => el.textContent = unitLabel);
+
+    els.mobileGross.textContent = formatArea(totals.grossSqM);
+    els.mobileUsable.textContent = formatArea(totals.usableSqM);
+  }
+
+  function renderPastureList() {
+    const pastures = getPastures();
+    if (!pastures.length) {
+      els.pastureList.innerHTML = `
+        <div class="empty">
+          <strong>No pasture drawn yet</strong>
+          Select Draw Pasture, then click around the pasture boundary. Double-click the final point to finish.
+        </div>`;
+      return;
+    }
+
+    const calcs = pastures.map(calculatePasture);
+    const maxGross = Math.max(...calcs.map(p => p.grossSqM), 1);
+
+    els.pastureList.innerHTML = `<div class="pasture-list">${calcs.map(p => {
+      const feature = state.draw.get(p.id);
+      const visible = String(feature?.properties?.visible) !== 'false';
+      return `
+        <div class="pasture-row" data-pasture-row="${escapeAttr(String(p.id))}">
+          <div class="pasture-row-top">
+            <div style="min-width:0">
+              <div class="pasture-name">${escapeHtml(p.name)}</div>
+              <div class="pasture-metrics">
+                ${formatArea(p.grossSqM)} gross · ${formatArea(p.usableSqM)} usable · ${formatPerimeter(p.perimeterM)}
+              </div>
+            </div>
+            <div class="row-actions">
+              <button title="${visible ? 'Hide' : 'Show'} pasture" data-row-action="visibility" data-id="${escapeAttr(String(p.id))}">${visible ? '◉' : '○'}</button>
+              <button title="Zoom to pasture" data-row-action="zoom" data-id="${escapeAttr(String(p.id))}">⌖</button>
+              <button title="Duplicate pasture" data-row-action="duplicate" data-id="${escapeAttr(String(p.id))}">⧉</button>
+              <button title="Edit pasture" data-row-action="edit" data-id="${escapeAttr(String(p.id))}">✎</button>
+            </div>
+          </div>
+          <div class="bar"><span style="width:${Math.max(3,(p.grossSqM/maxGross)*100).toFixed(1)}%"></span></div>
+        </div>`;
+    }).join('')}</div>`;
+
+    els.pastureList.querySelectorAll('[data-row-action]').forEach(btn => {
+      btn.addEventListener('click', () => pastureRowAction(btn.dataset.rowAction, btn.dataset.id));
+    });
+  }
+
+  function pastureRowAction(action, id) {
+    if (!state.draw) return;
+    const feature = state.draw.get(id);
+    if (!feature) return;
+
+    if (action === 'visibility') {
+      const visible = String(feature.properties?.visible) !== 'false';
+      state.draw.setFeatureProperty(id, 'visible', !visible);
+      onDataMutation('Visibility changed');
+    }
+    if (action === 'zoom') zoomToFeature(feature);
+    if (action === 'duplicate') duplicatePasture(id);
+    if (action === 'edit') {
+      state.selectedId = id;
+      state.draw.changeMode('simple_select', {featureIds:[id]});
+      setTab('feature');
+      renderFeatureEditor();
+    }
+  }
+
+  function renderFeatureEditor() {
+    if (!state.draw || !state.selectedId) {
+      els.featureEditor.innerHTML = `
+        <div class="empty">
+          <strong>No feature selected</strong>
+          Select a pasture, exclusion, gate, water point, or note on the map.
+        </div>`;
+      return;
+    }
+
+    const feature = state.draw.get(state.selectedId);
+    if (!feature) {
+      state.selectedId = null;
+      renderFeatureEditor();
+      return;
+    }
+
+    const kind = feature.properties?.raKind || '';
+    if (kind === 'pasture') renderPastureEditor(feature);
+    else if (kind === 'exclusion') renderExclusionEditor(feature);
+    else if (kind === 'marker') renderMarkerEditor(feature);
+    else els.featureEditor.innerHTML = '<div class="empty"><strong>Unsupported feature</strong></div>';
+  }
+
+  function renderPastureEditor(feature) {
+    const c = calculatePasture(feature);
+    els.featureEditor.innerHTML = `
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>${escapeHtml(c.name)}</h2>
+            <p>${formatArea(c.grossSqM)} gross · ${formatArea(c.usableSqM)} estimated usable</p>
+          </div>
+          <span class="detail-status">Pasture</span>
+        </div>
+        <div class="field">
+          <label for="fName">Pasture name</label>
+          <input id="fName" value="${escapeAttr(c.name)}">
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="fBrush">Brush / timber <span class="assumption">ASSUMPTION</span></label>
+            <div class="field-inline"><input id="fBrush" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${c.brush}"><div class="helper">%</div></div>
+          </div>
+          <div class="field">
+            <label for="fSlope">Slope reduction <span class="assumption">ASSUMPTION</span></label>
+            <div class="field-inline"><input id="fSlope" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${c.slope}"><div class="helper">%</div></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="fInaccessible">Inaccessible area <span class="assumption">ASSUMPTION</span></label>
+          <div class="field-inline"><input id="fInaccessible" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${c.inaccessible}"><div class="helper">%</div></div>
+          <div class="helper">Applied after mapped exclusions. Reductions are sequential and user-controlled.</div>
+        </div>
+        <div class="field">
+          <label for="fNotes">Notes <span style="font-weight:400;color:#81817A">Optional</span></label>
+          <textarea id="fNotes" placeholder="Fence condition, forage notes, access limitations…">${escapeHtml(feature.properties?.notes || '')}</textarea>
+        </div>
+        <div class="card" style="margin:12px 0 0;background:#F7F7F4">
+          <div class="field-grid">
+            <div><div class="metric-label">Excluded</div><strong>${formatArea(c.excludedSqM)}</strong></div>
+            <div><div class="metric-label">Net measured</div><strong>${formatArea(c.netSqM)}</strong></div>
+            <div><div class="metric-label">Perimeter</div><strong>${formatPerimeter(c.perimeterM)}</strong></div>
+            <div><div class="metric-label">Percent usable</div><strong>${c.percentUsable.toFixed(1)}%</strong></div>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-small" id="featureZoom">Zoom to</button>
+          <button class="btn btn-small" id="featureDuplicate">Duplicate</button>
+          <button class="btn btn-small" id="addExclusionForPasture">Add exclusion</button>
+          <button class="btn btn-small btn-danger" id="featureDelete">Delete</button>
+        </div>
+      </div>`;
+
+    bindFeatureField('fName','name',v => v.trim() || 'Unnamed Pasture');
+    bindFeatureField('fBrush','brushPct',v => clampPct(v));
+    bindFeatureField('fSlope','slopePct',v => clampPct(v));
+    bindFeatureField('fInaccessible','inaccessiblePct',v => clampPct(v));
+    bindFeatureField('fNotes','notes',v => v);
+
+    $('featureZoom').onclick = () => zoomToFeature(feature);
+    $('featureDuplicate').onclick = () => duplicatePasture(feature.id);
+    $('addExclusionForPasture').onclick = () => {
+      beginDraw('exclusion');
+      toast(`Draw the exclusion inside ${c.name}.`);
+    };
+    $('featureDelete').onclick = deleteSelected;
+  }
+
+  function renderExclusionEditor(feature) {
+    const parentId = String(feature.properties?.parentPastureId || '');
+    const parent = getPastures().find(p => String(p.id) === parentId);
+    const overlap = parent ? overlapAreaSqM(parent, feature) : 0;
+    const totalArea = safeArea(feature);
+    const types = [
+      ['pond','Pond'],['barn-lot','Barn / lot'],['timber','Timber'],['rock','Rock / outcrop'],
+      ['crop','Crop area'],['no-graze','No-graze / conservation'],['custom','Custom']
+    ];
+
+    els.featureEditor.innerHTML = `
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>${escapeHtml(feature.properties?.name || 'Exclusion')}</h2>
+            <p>${formatArea(overlap)} subtracted from assigned pasture</p>
+          </div>
+          <span class="detail-status" style="background:#F4ECE1;color:#6b4d2b">Exclusion</span>
+        </div>
+        <div class="field">
+          <label for="fName">Name</label>
+          <input id="fName" value="${escapeAttr(feature.properties?.name || 'Exclusion')}">
+        </div>
+        <div class="field">
+          <label for="fExType">Type</label>
+          <select id="fExType">${types.map(([v,l]) => `<option value="${v}" ${feature.properties?.exclusionType===v?'selected':''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label for="fParent">Assigned pasture</label>
+          <select id="fParent">
+            <option value="">Not assigned</option>
+            ${getPastures().map(p => `<option value="${escapeAttr(String(p.id))}" ${String(p.id)===parentId?'selected':''}>${escapeHtml(p.properties?.name || 'Pasture')}</option>`).join('')}
+          </select>
+          <div class="helper">Only the portion overlapping the assigned pasture is subtracted.</div>
+        </div>
+        <div class="field">
+          <label for="fNotes">Notes <span style="font-weight:400;color:#81817A">Optional</span></label>
+          <textarea id="fNotes">${escapeHtml(feature.properties?.notes || '')}</textarea>
+        </div>
+        <div class="card" style="margin:12px 0 0;background:#F7F7F4">
+          <div class="field-grid">
+            <div><div class="metric-label">Drawn area</div><strong>${formatArea(totalArea)}</strong></div>
+            <div><div class="metric-label">Counted exclusion</div><strong>${formatArea(overlap)}</strong></div>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-small" id="featureZoom">Zoom to</button>
+          <button class="btn btn-small btn-danger" id="featureDelete">Delete</button>
+        </div>
+      </div>`;
+
+    bindFeatureField('fName','name',v => v.trim() || 'Exclusion');
+    bindFeatureField('fExType','exclusionType',v => v);
+    bindFeatureField('fParent','parentPastureId',v => v);
+    bindFeatureField('fNotes','notes',v => v);
+    $('featureZoom').onclick = () => zoomToFeature(feature);
+    $('featureDelete').onclick = deleteSelected;
+  }
+
+  function renderMarkerEditor(feature) {
+    const markerTypes = [['gate','Gate'],['water','Water source'],['note','Note']];
+    els.featureEditor.innerHTML = `
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>${escapeHtml(feature.properties?.name || 'Marker')}</h2>
+            <p>${escapeHtml(markerLabel(feature.properties?.markerType))}</p>
+          </div>
+          <span class="detail-status">Marker</span>
+        </div>
+        <div class="field">
+          <label for="fName">Name</label>
+          <input id="fName" value="${escapeAttr(feature.properties?.name || 'Marker')}">
+        </div>
+        <div class="field">
+          <label for="fMarkerType">Type</label>
+          <select id="fMarkerType">${markerTypes.map(([v,l]) => `<option value="${v}" ${feature.properties?.markerType===v?'selected':''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="field">
+          <label for="fNotes">Notes <span style="font-weight:400;color:#81817A">Optional</span></label>
+          <textarea id="fNotes">${escapeHtml(feature.properties?.notes || '')}</textarea>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-small" id="featureZoom">Zoom to</button>
+          <button class="btn btn-small btn-danger" id="featureDelete">Delete</button>
+        </div>
+      </div>`;
+
+    bindFeatureField('fName','name',v => v.trim() || 'Marker');
+    bindFeatureField('fMarkerType','markerType',v => v);
+    bindFeatureField('fNotes','notes',v => v);
+    $('featureZoom').onclick = () => zoomToFeature(feature);
+    $('featureDelete').onclick = deleteSelected;
+  }
+
+  function bindFeatureField(id, prop, transform) {
+    const input = $(id);
+    if (!input) return;
+    const event = input.tagName === 'SELECT' ? 'change' : 'input';
+    input.addEventListener(event, () => {
+      if (!state.selectedId || !state.draw.get(state.selectedId)) return;
+      state.draw.setFeatureProperty(state.selectedId, prop, transform(input.value));
+      // Keep the active input mounted while still updating live acreage/results.
+      renderMetrics();
+      renderPastureList();
+      refreshLabels();
+      markDirty();
+      scheduleHistoryPush('Feature details changed');
+      saveSession();
+    });
+  }
+
+  let historyTimer = null;
+  function scheduleHistoryPush(label) {
+    clearTimeout(historyTimer);
+    historyTimer = setTimeout(() => pushHistory(label), 350);
+  }
+
+  function refreshLabels() {
+    if (!state.map || !state.map.isStyleLoaded() || !state.map.getSource('ra-labels')) return;
+
+    const features = [];
+    getPastures().forEach(p => {
+      if (String(p.properties?.visible) === 'false') return;
+      try {
+        const point = turf.pointOnFeature(p);
+        const c = calculatePasture(p);
+        point.properties = { label: `${c.name} · ${formatArea(c.grossSqM)}` };
+        features.push(point);
+      } catch (_) {}
+    });
+
+    state.map.getSource('ra-labels').setData({type:'FeatureCollection',features});
+  }
+
+  function duplicatePasture(id) {
+    const pasture = state.draw.get(id);
+    if (!pasture) return;
+
+    const oldId = String(pasture.id);
+    const copy = deepClone(pasture);
+    delete copy.id;
+    copy.properties = {...copy.properties, name:`${copy.properties?.name || 'Pasture'} Copy`};
+
+    let translated = copy;
+    try { translated = turf.transformTranslate(copy, 25, 45, {units:'meters'}); } catch (_) {}
+
+    const newIds = state.draw.add(translated);
+    const newId = newIds[0];
+
+    const related = getExclusions().filter(ex => String(ex.properties?.parentPastureId || '') === oldId);
+    related.forEach(ex => {
+      const exCopy = deepClone(ex);
+      delete exCopy.id;
+      exCopy.properties = {...exCopy.properties, parentPastureId:String(newId), name:`${exCopy.properties?.name || 'Exclusion'} Copy`};
+      let shifted = exCopy;
+      try { shifted = turf.transformTranslate(exCopy, 25, 45, {units:'meters'}); } catch (_) {}
+      state.draw.add(shifted);
+    });
+
+    state.selectedId = newId;
+    try { state.draw.changeMode('simple_select',{featureIds:[newId]}); } catch (_) {}
+    onDataMutation('Pasture duplicated');
+    setTab('feature');
+  }
+
+  function duplicateProject() {
+    state.project = {
+      id: uuid(),
+      name: `${state.project.name || 'Pasture Acreage Project'} Copy`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    els.projectName.value = state.project.name;
+    state.lastSavedHash = null;
+    markDirty();
+    saveSession();
+    toast('Project duplicated with a new project ID.');
+  }
+
+  function pushHistory(label) {
+    if (!state.draw || state.restoringHistory) return;
+    const snapshot = {
+      label,
+      geojson: deepClone(state.draw.getAll()),
+      selectedId: state.selectedId
+    };
+    const signature = JSON.stringify(snapshot.geojson);
+    const current = state.history[state.historyIndex];
+    if (current && JSON.stringify(current.geojson) === signature) return;
+
+    state.history = state.history.slice(0, state.historyIndex + 1);
+    state.history.push(snapshot);
+    if (state.history.length > 40) state.history.shift();
+    state.historyIndex = state.history.length - 1;
+    updateHistoryButtons();
+  }
+
+  function undo() {
+    if (!state.draw || state.historyIndex <= 0) return;
+    state.historyIndex -= 1;
+    restoreHistorySnapshot();
+  }
+
+  function redo() {
+    if (!state.draw || state.historyIndex >= state.history.length - 1) return;
+    state.historyIndex += 1;
+    restoreHistorySnapshot();
+  }
+
+  function restoreHistorySnapshot() {
+    const snapshot = state.history[state.historyIndex];
+    if (!snapshot) return;
+    state.restoringHistory = true;
+    state.draw.set(deepClone(snapshot.geojson));
+    state.restoringHistory = false;
+    state.selectedId = null;
+    selectMode();
+    renderAll();
+    markDirty();
+    saveSession();
+    updateHistoryButtons();
+  }
+
+  function updateHistoryButtons() {
+    els.undoBtn.disabled = state.historyIndex <= 0;
+    els.redoBtn.disabled = state.historyIndex < 0 || state.historyIndex >= state.history.length - 1;
+  }
+
+  function markDirty() {
+    state.dirty = true;
+    updateSaveStatus();
+  }
+
+  function updateSaveStatus() {
+    const label = state.dirty ? 'Unsaved changes' : 'Saved';
+    els.saveStatus.textContent = label;
+    els.saveStateChip.textContent = label;
+    els.saveStatus.style.background = state.dirty ? '#F4ECE1' : '#E7EEE8';
+    els.saveStatus.style.color = state.dirty ? '#6b4d2b' : '#344a39';
+  }
+
+  function buildRAProject() {
+    const now = new Date().toISOString();
+    state.project.updatedAt = now;
+
+    return {
+      raFile: true,
+      formatVersion: TOOL.raFormatVersion || '1.0',
+      tool: {
+        id: TOOL.id,
+        name: TOOL.name,
+        version: TOOL.version
+      },
+      project: deepClone(state.project),
+      preferences: {
+        areaUnit: state.areaUnit,
+        perimeterUnit: state.perimeterUnit,
+        mapStyle: state.mapStyle
+      },
+      state: {
+        projectName: state.project.name,
+        units: {
+          area: state.areaUnit,
+          perimeter: state.perimeterUnit
+        },
+        notes: 'Feature-level notes and pasture adjustments are stored in spatial GeoJSON properties.'
+      },
+      spatial: {
+        geojson: state.draw ? deepClone(state.draw.getAll()) : {type:'FeatureCollection',features:[]},
+        camera: state.map ? {
+          center: state.map.getCenter().toArray(),
+          zoom: state.map.getZoom(),
+          bearing: state.map.getBearing(),
+          pitch: state.map.getPitch()
+        } : null,
+        selectedFeatureId: state.selectedId
+      },
+      metadata: {
+        generator: 'RanchAssist',
+        schema: 'ra-project'
+      }
+    };
+  }
+
+  function saveRAProject() {
+    if (!state.draw) {
+      toast('Load the map before saving a project.', 'error');
+      return;
+    }
+
+    const project = buildRAProject();
+    const blob = new Blob([JSON.stringify(project,null,2)], {type:'application/x-ranchassist-project'});
+    downloadBlob(blob, `${sanitizeFilename(project.project.name)}.ra`);
+
+    state.dirty = false;
+    state.lastSavedHash = hashState(project);
+    updateSaveStatus();
+    saveSession();
+    toast('Project saved. Your RanchAssist .ra project file is ready.');
+  }
+
+  async function openRAProjectFromInput() {
+    const file = els.raFileInput.files?.[0];
+    els.raFileInput.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const project = JSON.parse(text);
+      validateRAProject(project);
+      restoreRAProject(migrateProjectIfNeeded(project));
+      toast('Project opened. Your saved RanchAssist project has been restored.');
+    } catch (err) {
+      toast(err.message || 'This project file could not be opened.', 'error');
+    }
+  }
+
+  function validateRAProject(project) {
+    if (!project || project.raFile !== true) {
+      throw new Error('Not a RanchAssist project. Choose a .ra file exported from RanchAssist.');
+    }
+    if (!project.formatVersion || !project.tool || !project.project || !project.state || !project.metadata) {
+      throw new Error('Project is incomplete. This file is missing information required to restore the project.');
+    }
+    if (project.tool.id !== TOOL.id) {
+      throw new Error(`Different RanchAssist tool. This project belongs to ${project.tool.name || project.tool.id}.`);
+    }
+    const major = String(project.formatVersion).split('.')[0];
+    const supportedMajor = String(TOOL.raFormatVersion || '1.0').split('.')[0];
+    if (Number(major) > Number(supportedMajor)) {
+      throw new Error('Newer project format. This project was created with a newer version of RanchAssist and cannot be opened safely here.');
+    }
+    if (!project.project.id || !project.project.createdAt || !project.project.updatedAt) {
+      throw new Error('Project is incomplete. Project identity or timestamps are missing.');
+    }
+    if (!project.spatial?.geojson || project.spatial.geojson.type !== 'FeatureCollection') {
+      throw new Error('Project is incomplete. Spatial pasture data is missing.');
+    }
+    validateGeoJSON(project.spatial.geojson);
+  }
+
+  function migrateProjectIfNeeded(project) {
+    // v1.0 is the initial schema. Keep this function as migration scaffolding.
+    return deepClone(project);
+  }
+
+  function restoreRAProject(project) {
+    state.restoringHistory = true;
+    state.draw.set(project.spatial.geojson);
+    state.restoringHistory = false;
+
+    state.project = deepClone(project.project);
+    state.areaUnit = project.preferences?.areaUnit || project.state?.units?.area || 'acres';
+    state.perimeterUnit = project.preferences?.perimeterUnit || project.state?.units?.perimeter || 'ft';
+    state.mapStyle = project.preferences?.mapStyle || state.mapStyle;
+
+    if (state.map.getStyle()?.sprite && state.mapStyle !== els.mapStyleSelect.value) {
+      // Avoid forcing a style reload if current style is already usable.
+    }
+
+    const cam = project.spatial?.camera;
+    if (cam?.center) {
+      state.map.jumpTo({
+        center: cam.center,
+        zoom: Number(cam.zoom) || 5,
+        bearing: Number(cam.bearing) || 0,
+        pitch: Number(cam.pitch) || 0
+      });
+    }
+
+    state.selectedId = null;
+    state.history = [];
+    state.historyIndex = -1;
+    pushHistory('Project opened');
+    state.dirty = false;
+    state.lastSavedHash = hashState(project);
+    renderAll();
+    saveSession();
+    setTab('pastures');
+  }
+
+  async function importGeoJSONFromInput() {
+    const file = els.geoJsonFileInput.files?.[0];
+    els.geoJsonFileInput.value = '';
+    if (!file) return;
+
+    try {
+      const geojson = JSON.parse(await file.text());
+      validateGeoJSON(geojson);
+      const fc = geojson.type === 'FeatureCollection'
+        ? geojson
+        : {type:'FeatureCollection',features:[geojson]};
+
+      let pastureCounter = getPastures().length;
+      fc.features.forEach(feature => {
+        const clean = deepClone(feature);
+        if (clean.geometry?.type === 'Polygon' || clean.geometry?.type === 'MultiPolygon') {
+          clean.properties = clean.properties || {};
+          if (!clean.properties.raKind) {
+            clean.properties.raKind = 'pasture';
+            clean.properties.name = clean.properties.name || `Pasture ${++pastureCounter}`;
+            clean.properties.brushPct = Number(clean.properties.brushPct) || 0;
+            clean.properties.slopePct = Number(clean.properties.slopePct) || 0;
+            clean.properties.inaccessiblePct = Number(clean.properties.inaccessiblePct) || 0;
+            clean.properties.visible = true;
+          }
+          delete clean.id;
+          state.draw.add(clean);
+        } else if (clean.geometry?.type === 'Point') {
+          clean.properties = {...(clean.properties||{}), raKind:'marker', markerType:clean.properties?.markerType || 'note', visible:true};
+          delete clean.id;
+          state.draw.add(clean);
+        }
+      });
+
+      onDataMutation('GeoJSON imported');
+      zoomToAll();
+      toast('GeoJSON imported. Review pasture/exclusion assignments before relying on totals.');
+    } catch (err) {
+      toast(err.message || 'GeoJSON could not be imported.', 'error');
+    }
+  }
+
+  function validateGeoJSON(geojson) {
+    const allowed = new Set(['FeatureCollection','Feature','Polygon','MultiPolygon','Point','MultiPoint','LineString','MultiLineString']);
+    if (!geojson || !allowed.has(geojson.type)) throw new Error('This file is not valid GeoJSON.');
+    const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+    if (!Array.isArray(features)) throw new Error('GeoJSON features are missing.');
+    if (features.length > 5000) throw new Error('This GeoJSON file contains too many features for this planning tool.');
+    features.forEach(f => {
+      if (!f || f.type !== 'Feature' || !f.geometry || !allowed.has(f.geometry.type)) {
+        throw new Error('GeoJSON contains an unsupported feature.');
+      }
+    });
+  }
+
+  function exportGeoJSON() {
+    if (!state.draw) return;
+    const fc = deepClone(state.draw.getAll());
+    fc.properties = {
+      generator:'RanchAssist',
+      tool:TOOL.id,
+      projectName:state.project.name,
+      exportedAt:new Date().toISOString()
+    };
+    downloadBlob(new Blob([JSON.stringify(fc,null,2)],{type:'application/geo+json'}), `${sanitizeFilename(state.project.name)}.geojson`);
+    toast('GeoJSON exported.');
+  }
+
+  function exportCSV() {
+    const rows = [
+      ['Record Type','Pasture','Name / Type','Gross Area (ac)','Excluded Area (ac)','Net Measured (ac)','Estimated Usable (ac)','Perimeter (ft)','Brush/Timber %','Slope Reduction %','Inaccessible %','Notes']
+    ];
+
+    getPastures().forEach(p => {
+      const c = calculatePasture(p);
+      rows.push([
+        'Pasture', c.name, '',
+        sqmToAcres(c.grossSqM).toFixed(4),
+        sqmToAcres(c.excludedSqM).toFixed(4),
+        sqmToAcres(c.netSqM).toFixed(4),
+        sqmToAcres(c.usableSqM).toFixed(4),
+        (c.perimeterM * FEET_PER_METER).toFixed(2),
+        c.brush.toFixed(2), c.slope.toFixed(2), c.inaccessible.toFixed(2),
+        p.properties?.notes || ''
+      ]);
+
+      c.exclusions.forEach(ex => rows.push([
+        'Exclusion', c.name,
+        `${ex.properties?.name || 'Exclusion'} (${ex.properties?.exclusionType || 'custom'})`,
+        '', sqmToAcres(overlapAreaSqM(p,ex)).toFixed(4), '', '', '', '', '', '',
+        ex.properties?.notes || ''
+      ]));
+    });
+
+    getMarkers().forEach(m => rows.push([
+      'Marker','',`${m.properties?.name || 'Marker'} (${m.properties?.markerType || 'note'})`,
+      '','','','','','','','',m.properties?.notes || ''
+    ]));
+
+    const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), `${sanitizeFilename(state.project.name)}_acreage.csv`);
+    toast('CSV exported.');
+  }
+
+  function exportMapPNG() {
+    if (!state.map) return;
+    try {
+      state.map.once('render', () => {
+        try {
+          const dataUrl = state.map.getCanvas().toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = `${sanitizeFilename(state.project.name)}_map.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          toast('Map PNG exported.');
+        } catch (err) {
+          toast('The map image could not be exported in this browser.', 'error');
+        }
+      });
+      state.map.triggerRepaint();
+    } catch (_) {
+      toast('The map image could not be exported in this browser.', 'error');
+    }
+  }
+
+  function printReport() {
+    renderAll();
+    window.print();
+  }
+
+  async function copySummary() {
+    const summary = buildSummary();
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast('Summary copied.');
+    } catch (_) {
+      const ta = document.createElement('textarea');
+      ta.value = summary;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      toast('Summary copied.');
+    }
+  }
+
+  function buildSummary() {
+    const totals = projectTotals();
+    const lines = [
+      'RANCHASSIST™ — Pasture Acreage Calculator',
+      state.project.name,
+      '',
+      `Gross area: ${formatArea(totals.grossSqM)}`,
+      `Mapped exclusions: ${formatArea(totals.excludedSqM)}`,
+      `Net measured area: ${formatArea(totals.netSqM)}`,
+      `Estimated usable area: ${formatArea(totals.usableSqM)}`,
+      `Total pasture perimeter: ${formatPerimeter(totals.perimeterM)}`,
+      ''
+    ];
+
+    getPastures().forEach(p => {
+      const c = calculatePasture(p);
+      lines.push(`${c.name}: ${formatArea(c.grossSqM)} gross · ${formatArea(c.excludedSqM)} excluded · ${formatArea(c.usableSqM)} usable · ${formatPerimeter(c.perimeterM)} perimeter`);
+      if (c.brush || c.slope || c.inaccessible) {
+        lines.push(`  Adjustments: brush/timber ${c.brush}% · slope ${c.slope}% · inaccessible ${c.inaccessible}%`);
+      }
+    });
+
+    lines.push('');
+    lines.push('Estimated usable area applies user-entered reductions sequentially after mapped exclusions.');
+    lines.push('Mapped boundaries are operational planning measurements and are not a legal survey or substitute for a licensed surveyor.');
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+
+    return lines.join('\n');
+  }
+
+  function sendEmail() {
+    const to = els.emailTo.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast('Enter a valid email address.', 'error');
+      return;
+    }
+
+    const payload = {
+      to,
+      projectName: state.project.name,
+      summary: buildSummary()
+    };
+
+    els.sendEmailBtn.disabled = true;
+    els.sendEmailBtn.textContent = 'Sending…';
+
+    if (window.google?.script?.run) {
+      google.script.run
+        .withSuccessHandler(() => {
+          els.sendEmailBtn.disabled = false;
+          els.sendEmailBtn.textContent = 'Send Email';
+          closeModal('emailModal');
+          toast('Email sent.');
+        })
+        .withFailureHandler(err => {
+          els.sendEmailBtn.disabled = false;
+          els.sendEmailBtn.textContent = 'Send Email';
+          toast(err?.message || 'Email could not be sent.', 'error');
+        })
+        .sendPastureAcreageEmail(payload);
+    } else {
+      const subject = encodeURIComponent(`RanchAssist Pasture Acreage — ${state.project.name}`);
+      const body = encodeURIComponent(payload.summary);
+      window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`;
+      els.sendEmailBtn.disabled = false;
+      els.sendEmailBtn.textContent = 'Send Email';
+      closeModal('emailModal');
+    }
+  }
+
+  async function searchPlaces(e) {
+    e.preventDefault();
+    const q = els.searchInput.value.trim();
+    if (!q || !mapboxgl.accessToken) return;
+
+    if (state.searchAbort) state.searchAbort.abort();
+    state.searchAbort = new AbortController();
+
+    els.searchResults.innerHTML = '<div style="padding:10px;color:#666660;font-size:12px">Searching…</div>';
+    show(els.searchResults);
+
+    try {
+      const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(q)}&limit=6&access_token=${encodeURIComponent(mapboxgl.accessToken)}`;
+      const res = await fetch(url, {signal:state.searchAbort.signal});
+      if (!res.ok) throw new Error('Search failed.');
+      const data = await res.json();
+      const features = data.features || [];
+
+      if (!features.length) {
+        els.searchResults.innerHTML = '<div style="padding:10px;color:#666660;font-size:12px">No places found.</div>';
+        return;
+      }
+
+      els.searchResults.innerHTML = features.map((f,i) => {
+        const p = f.properties || {};
+        const name = p.name_preferred || p.name || p.full_address || 'Result';
+        const detail = p.full_address || p.place_formatted || '';
+        return `<button class="search-result" data-search-index="${i}"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span></button>`;
+      }).join('');
+
+      els.searchResults.querySelectorAll('[data-search-index]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const f = features[Number(btn.dataset.searchIndex)];
+          const coords = f?.geometry?.coordinates;
+          if (!coords) return;
+          state.map.flyTo({center:coords,zoom:Math.max(state.map.getZoom(),15),essential:true});
+          hide(els.searchResults);
+        });
+      });
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      els.searchResults.innerHTML = '<div style="padding:10px;color:#B44845;font-size:12px">Search could not be completed.</div>';
+    }
+  }
+
+  function geolocate() {
+    if (!navigator.geolocation) {
+      toast('Location is not available in this browser.', 'error');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => state.map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:16,essential:true}),
+      () => toast('Location permission was not available.', 'error'),
+      {enableHighAccuracy:true,timeout:10000,maximumAge:30000}
+    );
+  }
+
+  function zoomToAll() {
+    if (!state.map || !state.draw) return;
+    const fc = state.draw.getAll();
+    if (!fc.features.length) {
+      toast('Draw or import a pasture first.');
+      return;
+    }
+    try {
+      const b = turf.bbox(fc);
+      state.map.fitBounds([[b[0],b[1]],[b[2],b[3]]],{padding:60,duration:550,maxZoom:17});
+    } catch (_) {}
+  }
+
+  function zoomToFeature(feature) {
+    if (!feature || !state.map) return;
+    try {
+      if (feature.geometry.type === 'Point') {
+        state.map.flyTo({center:feature.geometry.coordinates,zoom:17,essential:true});
+      } else {
+        const b = turf.bbox(feature);
+        state.map.fitBounds([[b[0],b[1]],[b[2],b[3]]],{padding:70,duration:500,maxZoom:18});
+      }
+    } catch (_) {}
+  }
+
+  function saveSession() {
+    if (!state.project) return;
+    try {
+      const envelope = {
+        toolId:TOOL.id,
+        project:deepClone(state.project),
+        areaUnit:state.areaUnit,
+        perimeterUnit:state.perimeterUnit,
+        mapStyle:state.mapStyle,
+        geojson:state.draw ? deepClone(state.draw.getAll()) : null,
+        camera:state.map ? {
+          center:state.map.getCenter().toArray(),
+          zoom:state.map.getZoom(),
+          bearing:state.map.getBearing(),
+          pitch:state.map.getPitch()
+        } : null,
+        dirty:state.dirty,
+        recoveredAt:new Date().toISOString()
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(envelope));
+    } catch (err) {
+      console.warn('Could not save active session:', err);
+    }
+  }
+
+  function clearSession() {
+    closeModal('confirmModal');
+    if (state.draw) {
+      state.restoringHistory = true;
+      state.draw.deleteAll();
+      state.restoringHistory = false;
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    initializeProject();
+    state.areaUnit = 'acres';
+    state.perimeterUnit = 'ft';
+    state.history = [];
+    state.historyIndex = -1;
+    state.selectedId = null;
+    state.dirty = false;
+    state.lastSavedHash = null;
+    pushHistory('Initial');
+    renderAll();
+    saveSession();
+    toast('Session cleared. Saved .ra files on your device were not affected.');
+  }
+
+  function setTab(tab) {
+    document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+    const target = $(`tab-${tab}`);
+    if (target) target.classList.remove('hidden');
+    if (window.innerWidth <= 767 && tab === 'feature') {
+      els.toolPanel.classList.add('expanded');
+      setTimeout(() => state.map && state.map.resize(), 190);
+    }
+  }
+
+  function bindMenu(button, menu) {
+    if (!button || !menu) return;
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = menu.classList.contains('hidden');
+      closeAllMenus();
+      menu.classList.toggle('hidden', !opening);
+      button.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    });
+  }
+
+  function closeAllMenus() {
+    [els.projectMenu,els.exportMenu,els.shareMenu,els.mobileMenu].forEach(menu => menu && menu.classList.add('hidden'));
+    [els.projectMenuBtn,els.exportMenuBtn,els.shareMenuBtn,els.mobileMenuBtn].forEach(btn => btn && btn.setAttribute('aria-expanded','false'));
+  }
+
+  function openModal(id) {
+    const el = $(id);
+    if (el) el.classList.remove('hidden');
+  }
+
+  function closeModal(id) {
+    const el = $(id);
+    if (el) el.classList.add('hidden');
+  }
+
+  function toast(message, type='') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    els.toastRegion.appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+  }
+
+  function formatArea(sqM) {
+    return `${formatAreaNumber(sqM)} ${areaUnitShort()}`;
+  }
+
+  function formatAreaNumber(sqM) {
+    let v = sqM;
+    let decimals = 2;
+    if (state.areaUnit === 'acres') v = sqmToAcres(sqM);
+    if (state.areaUnit === 'hectares') v = sqM / 10000;
+    if (state.areaUnit === 'sqft') { v = sqM * SQFT_PER_SQM; decimals = 0; }
+    if (state.areaUnit === 'sqm') { v = sqM; decimals = 0; }
+    return Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+  }
+
+  function formatPerimeter(meters) {
+    let v = meters, unit = 'm', decimals = 0;
+    if (state.perimeterUnit === 'ft') { v = meters * FEET_PER_METER; unit = 'ft'; decimals = 0; }
+    if (state.perimeterUnit === 'mi') { v = meters * MILES_PER_METER; unit = 'mi'; decimals = 2; }
+    if (state.perimeterUnit === 'm') { v = meters; unit = 'm'; decimals = 0; }
+    if (state.perimeterUnit === 'km') { v = meters / 1000; unit = 'km'; decimals = 2; }
+    return `${Number(v||0).toLocaleString(undefined,{minimumFractionDigits:decimals,maximumFractionDigits:decimals})} ${unit}`;
+  }
+
+  function areaUnitShort() {
+    return {acres:'ac',hectares:'ha',sqft:'sq ft',sqm:'sq m'}[state.areaUnit] || 'ac';
+  }
+
+  function areaUnitLabel() {
+    return {acres:'acres',hectares:'hectares',sqft:'square feet',sqm:'square meters'}[state.areaUnit] || 'acres';
+  }
+
+  function sqmToAcres(sqM) {
+    return Number(sqM || 0) * ACRES_PER_SQM;
+  }
+
+  function markerLabel(v) {
+    return v === 'gate' ? 'Gate' : v === 'water' ? 'Water source' : 'Map note';
+  }
+
+  function uuid() {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c => {
+      const r = Math.random()*16|0;
+      const v = c === 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+
+  function deepClone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  function hashState(v) {
+    const s = JSON.stringify(v);
+    let h = 2166136261;
+    for (let i=0;i<s.length;i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h,16777619);
+    }
+    return (h>>>0).toString(16);
+  }
+
+  function sanitizeFilename(name) {
+    return String(name || 'Pasture_Acreage_Project')
+      .replace(/[\\/:*?"<>|\x00-\x1F]/g,' ')
+      .trim()
+      .replace(/\s+/g,'_')
+      .slice(0,120) || 'Pasture_Acreage_Project';
+  }
+
+  function csvCell(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function escapeHtml(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+
+  function escapeAttr(v) {
+    return escapeHtml(v).replace(/`/g,'&#096;');
+  }
+
+  function show(el) { if (el) el.classList.remove('hidden'); }
+  function hide(el) { if (el) el.classList.add('hidden'); }
+
+})();
+</script>

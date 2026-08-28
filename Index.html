@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#F7F7F4">
+  <meta name="description" content="Draw pasture boundaries and calculate gross acreage, exclusions, perimeter, and estimated usable area.">
+
+  <link rel="preconnect" href="https://api.mapbox.com">
+  <link rel="preconnect" href="https://unpkg.com">
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.css" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.5.1/mapbox-gl-draw.css" rel="stylesheet">
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.5.1/mapbox-gl-draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+  <script>
+    window.RA_CONFIG = <?!= clientConfig ?>;
+  </script>
+
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <?!= include('App'); ?>
+</body>
+</html>
